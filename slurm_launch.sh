@@ -13,8 +13,8 @@ Options:\n
   -t|--wall-time\t\tWall time. Must be in the format: HH:MM:SS\n
   --ntasks-per-node\tNumber of tasks per node. Usually there should be exactly one task per node\n
   -n\t\t\tThe total number of tasks over all nodes\n
-  -P|--path\t\tAdditional path to be added to the environment variable \$PATH\n
-  -w|--workdir\t\tWorking directory\n
+  -w|--work-dir\t\tWorking directory\n
+  -o|--output-dir\t\tThe output directory for redirected the standard IO and error stream
   --email-addr\t\tEmail address for job event notifications\n
   --dry-run\t\tDry run without actually submitting the job\n
 "
@@ -27,10 +27,6 @@ fi
 
 while (( "$#" )); do
   case "$1" in
-    -f|--flag-with-argument)
-      FARG=$2
-      shift 2
-      ;;
     -p|--partition)
       partition=$2
       shift 2
@@ -51,7 +47,7 @@ while (( "$#" )); do
       ntasks=$2
       shift 2
       ;;
-    -w|--workdir)
+    -w|--work-dir)
       workdir=$2
       shift 2
       ;;
@@ -130,21 +126,31 @@ if [ ! -z $workdir ]; then
   echo "#SBATCH --chdir $workdir" >> $out_file
 fi
 
-echo -e "\nset -x" >> $out_file
-
-# Enter the working directory
 if [ ! -z $workdir ]; then
-  echo -e "\ncd $workdir" >> $out_file
+  echo "#SBATCH --chdir $workdir" >> $out_file
 fi
+
+echo -e "\nset -x" >> $out_file
 
 echo "" >> $out_file
 echo $PARAMS >> $out_file
 
 echo -e "SLURM script generated:\n"
+echo -e "========"
+
 cat $out_file
 
+echo -e "========\n"
+echo -e "SLURM script ends here\n"
+
 if [ -z $dry_run ]; then
-  eval "sbatch $out_file"
+  sbatch_output=$(sbatch $out_file)
+  echo $sbatch_output
+
+  if [ ! -z $output_dir ]; then
+    job_id=$(echo $sbatch_output | sed -e 's/Submitted batch job \([0-9]\+\).*/\1/')
+    cat $out_file > "$output_dir/slurm-$job_id.sh"
+  fi
 fi
 
 unlink $out_file
