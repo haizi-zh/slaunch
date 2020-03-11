@@ -19,6 +19,12 @@ Options:\n
   --dry-run\t\tDry run without actually submitting the job\n
 "
 
+# Import config files from ~/.config/slurm_launch
+config_file="$HOME/.config/slurm_launch"
+if [ -f $config_file ]; then
+  source $config_file
+fi
+
 while (( "$#" )); do
   case "$1" in
     -f|--flag-with-argument)
@@ -51,6 +57,10 @@ while (( "$#" )); do
       ;;
     --email-addr)
       email_addr=$2
+      shift 2
+      ;;
+    -o|--output-dir)
+      output_dir=$2
       shift 2
       ;;
     --dry-run)
@@ -106,10 +116,18 @@ if [ ! -z $ntasks ]; then
   echo "#SBATCH --ntasks $ntasks" >> $out_file
 fi
 
-email_addr=${email_addr:-$SLURM_EMAIL_ADDR}
 if [ ! -z $email_addr ]; then
   echo "#SBATCH --mail-type ALL" >> $out_file
   echo "#SBATCH --mail-user $email_addr" >> $out_file
+fi
+
+if [ ! -z $output_dir ]; then
+  echo "#SBATCH --output $output_dir/slurm-%j-%u-%x.out" >> $out_file
+  echo "#SBATCH --error $output_dir/slurm-%j-%u-%x.out" >> $out_file
+fi
+
+if [ ! -z $workdir ]; then
+  echo "#SBATCH --chdir $workdir" >> $out_file
 fi
 
 echo -e "\nset -x" >> $out_file
@@ -123,9 +141,7 @@ echo "" >> $out_file
 echo $PARAMS >> $out_file
 
 echo -e "SLURM script generated:\n"
-echo "================"
 cat $out_file
-echo -e "================\n"
 
 if [ -z $dry_run ]; then
   eval "sbatch $out_file"
