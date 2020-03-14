@@ -2,7 +2,7 @@
 
 PARAMS=""
 
-help_msg="Usage: sslurm [options] [--] CMD ...\n
+help_msg="Usage: slaunch [options] [--] CMD ...\n
 \n
 CMD: the actual command to submit. If CMD has its own arguments and flags, you may want to double-quote
      your command, or use the -- separator.\n
@@ -14,13 +14,13 @@ Options:\n
   --ntasks-per-node\tNumber of tasks per node. Usually there should be exactly one task per node\n
   -n\t\t\tThe total number of tasks over all nodes\n
   -w|--work-dir\t\tWorking directory\n
-  -o|--output-dir\t\tThe output directory for redirected the standard IO and error stream
+  -o|--output-dir\tThe output directory for redirected the standard IO and error stream\n
   --email-addr\t\tEmail address for job event notifications\n
   --dry-run\t\tDry run without actually submitting the job\n
 "
 
-# Import config files from ~/.config/slurm_launch
-config_file="$HOME/.config/slurm_launch"
+# Import config files from ~/.config/slaunch
+config_file="$HOME/.config/slaunch.config"
 if [ -f $config_file ]; then
   source $config_file
 fi
@@ -48,7 +48,7 @@ while (( "$#" )); do
       shift 2
       ;;
     -w|--work-dir)
-      workdir=$2
+      work_dir=$2
       shift 2
       ;;
     --email-addr)
@@ -122,12 +122,12 @@ if [ ! -z $output_dir ]; then
   echo "#SBATCH --error $output_dir/slurm-%j-%u-%x.out" >> $out_file
 fi
 
-if [ ! -z $workdir ]; then
-  echo "#SBATCH --chdir $workdir" >> $out_file
+if [ ! -z $work_dir ]; then
+  echo "#SBATCH --chdir $work_dir" >> $out_file
 fi
 
-if [ ! -z $workdir ]; then
-  echo "#SBATCH --chdir $workdir" >> $out_file
+if [ ! -z $work_dir ]; then
+  echo "#SBATCH --chdir $work_dir" >> $out_file
 fi
 
 echo -e "\nset -x" >> $out_file
