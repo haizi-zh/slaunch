@@ -35,6 +35,10 @@ while (( "$#" )); do
       job_name=$2
       shift 2
       ;;
+    -A|--account)
+      account=$2
+      shift 2
+      ;;
     -t|--wall-time)
       wall_time=$2
       shift 2
@@ -100,6 +104,10 @@ if [ ! -z $job_name ]; then
   echo "#SBATCH --job-name $job_name" >> $out_file
 fi
 
+if [ ! -z $account ]; then
+  echo "#SBATCH --account $account" >> $out_file
+fi
+
 if [ ! -z $wall_time ]; then
   echo "#SBATCH -t $wall_time" >> $out_file
 fi
@@ -118,8 +126,8 @@ if [ ! -z $email_addr ]; then
 fi
 
 if [ ! -z $output_dir ]; then
-  echo "#SBATCH --output $output_dir/slurm-%j-%u-%x.out" >> $out_file
-  echo "#SBATCH --error $output_dir/slurm-%j-%u-%x.out" >> $out_file
+  echo "#SBATCH --output $output_dir/%j-%x.log" >> $out_file
+  echo "#SBATCH --error $output_dir/%j-%x.log" >> $out_file
 fi
 
 if [ ! -z $work_dir ]; then
