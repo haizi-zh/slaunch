@@ -10,12 +10,14 @@ CMD: the actual command to submit. If CMD has its own arguments and flags, you m
 Options:\n
   -p|--partition\t\tPartition type. Default: RM. Other values: RM-shared, etc\n
   -J|--job-name\t\tThe name of the job\n
+  -A|--account\t\tCluster charge ID\n
   -t|--wall-time\t\tWall time. Must be in the format: HH:MM:SS\n
   --ntasks-per-node\tNumber of tasks per node. Usually there should be exactly one task per node\n
   -n\t\t\tThe total number of tasks over all nodes\n
   -w|--work-dir\t\tWorking directory\n
   -o|--output-dir\tThe output directory for redirected the standard IO and error stream\n
-  --email-addr\t\tEmail address for job event notifications\n
+  --mail-addr\t\tEmail address for job event notifications\n
+  --mail-type\t\tEmail notification types\n
   --dry-run\t\tDry run without actually submitting the job\n
 "
 
@@ -55,8 +57,12 @@ while (( "$#" )); do
       work_dir=$2
       shift 2
       ;;
-    --email-addr)
-      email_addr=$2
+    --mail-addr)
+      mail_addr=$2
+      shift 2
+      ;;
+    --mail-type)
+      mail-type=$2
       shift 2
       ;;
     -o|--output-dir)
@@ -120,9 +126,12 @@ if [ ! -z $ntasks ]; then
   echo "#SBATCH --ntasks $ntasks" >> $out_file
 fi
 
-if [ ! -z $email_addr ]; then
-  echo "#SBATCH --mail-type ALL" >> $out_file
-  echo "#SBATCH --mail-user $email_addr" >> $out_file
+if [ ! -z $mail_addr ]; then
+  echo "#SBATCH --mail-user $mail_addr" >> $out_file
+fi
+
+if [ ! -z $mail_type ]; then
+  echo "#SBATCH --mail-type $mail_type" >> $out_file
 fi
 
 if [ ! -z $output_dir ]; then
