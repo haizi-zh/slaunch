@@ -12,13 +12,15 @@ Options:\n
   -J|--job-name\t\tThe name of the job\n
   -A|--account\t\tCluster charge ID\n
   -t|--wall-time\t\tWall time. Must be in the format: HH:MM:SS\n
+  -T|--time-min\t\tMinimal wall time\n
   --ntasks-per-node\tNumber of tasks per node. Usually there should be exactly one task per node\n
-  -n\t\t\tThe total number of tasks over all nodes\n
+  -n|--ntasks\t\t\tThe total number of tasks over all nodes\n
   -w|--work-dir\t\tWorking directory\n
   -o|--output-dir\tThe output directory for redirected the standard IO and error stream\n
+  -P|--output-pattern\tOutput file naming pattern\n
   --mail-addr\t\tEmail address for job event notifications\n
   --mail-type\t\tEmail notification types\n
-  --dry-run\t\tDry run without actually submitting the job\n
+  -d|--dry-run\t\tDry run without actually submitting the job\n
 "
 
 # Import config files from ~/.config/slaunch
@@ -45,6 +47,10 @@ while (( "$#" )); do
       wall_time=$2
       shift 2
       ;;
+    -T|--time-min)
+      time_min=$2
+      shift 2
+      ;;
     --ntasks-per-node)
       ntasks_per_node=$2
       shift 2
@@ -69,7 +75,11 @@ while (( "$#" )); do
       output_dir=$2
       shift 2
       ;;
-    --dry-run)
+    -P|--output-pattern)
+      output_pattern=$2
+      shift 2
+      ;;
+    -d|--dry-run)
       dry_run=1
       shift
       ;;
@@ -93,7 +103,7 @@ while (( "$#" )); do
   esac
 done
 # set positional arguments in their proper place
-eval set -- "$PARAMS"
+set -- "$PARAMS"
 
 # Write the temporary SLURM job-submission file
 out_file_id=$(date +%s)_$RANDOM
@@ -118,6 +128,10 @@ if [ ! -z $wall_time ]; then
   echo "#SBATCH -t $wall_time" >> $out_file
 fi
 
+if [ ! -z $time_min ]; then
+  echo "#SBATCH --time-min $time_min" >> $out_file
+fi
+
 if [ ! -z $ntasks_per_node ]; then
   echo "#SBATCH --ntasks-per-node $ntasks_per_node" >> $out_file
 fi
@@ -135,12 +149,11 @@ if [ ! -z $mail_type ]; then
 fi
 
 if [ ! -z $output_dir ]; then
-  echo "#SBATCH --output $output_dir/%j-%x.log" >> $out_file
-  echo "#SBATCH --error $output_dir/%j-%x.log" >> $out_file
-fi
-
-if [ ! -z $work_dir ]; then
-  echo "#SBATCH --chdir $work_dir" >> $out_file
+  if [ -z $output_pattern ]; then
+    output_pattern="%j-%x"
+  fi
+  echo "#SBATCH --output $output_dir/$output_pattern.log" >> $out_file
+  echo "#SBATCH --error $output_dir/$output_pattern.err" >> $out_file
 fi
 
 if [ ! -z $work_dir ]; then
@@ -170,4 +183,5 @@ if [ -z $dry_run ]; then
   fi
 fi
 
-unlink $out_file
+echo "Removing $out_file ..."
+rm $out_file
