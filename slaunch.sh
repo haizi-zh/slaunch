@@ -108,7 +108,7 @@ set -- "$PARAMS"
 # Write the temporary SLURM job-submission file
 out_file_id=$(date +%s)_$RANDOM
 out_file="/tmp/slurm_tmp.$out_file_id.sh"
-echo "#!/bin/sh" > $out_file
+echo "#!/bin/bash" > $out_file
 echo "#SBATCH -N 1" >> $out_file
 echo "#SBATCH -C EGRESS" >> $out_file
 
@@ -160,7 +160,9 @@ if [ ! -z $work_dir ]; then
   echo "#SBATCH --chdir $work_dir" >> $out_file
 fi
 
-echo -e "\nset -x" >> $out_file
+echo -e '\nset -euo pipefail' >> $out_file
+echo -e 'IFS=$'"'"'\\n\\t'"'" >> $out_file
+echo -e "set -x" >> $out_file
 
 echo "" >> $out_file
 echo $PARAMS >> $out_file
