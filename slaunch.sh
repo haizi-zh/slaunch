@@ -69,7 +69,7 @@ while (("$#")); do
     shift 2
     ;;
   --mail-type)
-    mail-type=$2
+    mail_type=$2
     shift 2
     ;;
   -o | --output-dir)
@@ -116,83 +116,133 @@ echo "#!/bin/bash" >$out_file
 echo "#SBATCH -N 1" >>$out_file
 echo "#SBATCH -C EGRESS" >>$out_file
 
-if [ ! -z $partition ]; then
-  echo "#SBATCH -p $partition" >>$out_file
+
+read -r -d '' sbatch_script <<- EOM
+#!/bin/bash
+#SBATCH -N 1
+EOM
+
+if [ ! -z $partition ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH -p $partition
+EOM
 fi
 
-if [ ! -z $job_name ]; then
-  echo "#SBATCH --job-name $job_name" >>$out_file
+
+if [ ! -z $job_name ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --job-name $job_name
+EOM
 fi
 
-if [ ! -z $account ]; then
-  echo "#SBATCH --account $account" >>$out_file
+if [ ! -z $account ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --account $account
+EOM
 fi
 
-if [ ! -z $wall_time ]; then
-  echo "#SBATCH --time $wall_time" >>$out_file
+if [ ! -z $wall_time ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --time $wall_time
+EOM
 fi
 
-if [ ! -z $time_min ]; then
-  echo "#SBATCH --time-min $time_min" >>$out_file
+if [ ! -z $time_min ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --time-min $time_min
+EOM
 fi
 
-if [ ! -z $ntasks_per_node ]; then
-  echo "#SBATCH --ntasks-per-node $ntasks_per_node" >>$out_file
+if [ ! -z $ntasks_per_node ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --ntasks-per-node $ntasks_per_node
+EOM
 fi
 
-if [ ! -z $ntasks ]; then
-  echo "#SBATCH --ntasks $ntasks" >>$out_file
+if [ ! -z $ntasks ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --ntasks $ntasks
+EOM
 fi
 
-if [ ! -z $mail_addr ]; then
-  echo "#SBATCH --mail-user $mail_addr" >>$out_file
+if [ ! -z $mail_addr ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --mail-user $mail_addr
+EOM
 fi
 
-if [ ! -z $mail_type ]; then
-  echo "#SBATCH --mail-type $mail_type" >>$out_file
+if [ ! -z $mail_type ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --mail-type $mail_type
+EOM
 fi
 
-if [ ! -z $output_dir ]; then
-  if [ -z $output_pattern ]; then
-    output_pattern="%j-%x"
-  fi
-  echo "#SBATCH --output $output_dir/$output_pattern.log" >>$out_file
-  echo "#SBATCH --error $output_dir/$output_pattern.err" >>$out_file
+if [ -z $output_pattern ]
+then
+  output_pattern="%j-%x"
 fi
 
-if [ ! -z $work_dir ]; then
-  echo "#SBATCH --chdir $work_dir" >>$out_file
+if [ ! -z $output_dir ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --output $output_dir/$output_pattern.log
+#SBATCH --error $output_dir/$output_pattern.err
+EOM
 fi
 
-echo -e '\nset -euo pipefail' >>$out_file
-echo -e 'IFS=$'"'"'\\n\\t'"'" >>$out_file
-echo -e "set -x" >>$out_file
-
-echo "" >>$out_file
-echo -e $PARAMS >>$out_file
-echo ""
-
-if [ ! -z $save_script ]; then
-  cp -a $out_file $save_script
+if [ ! -z $work_dir ]
+then
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+#SBATCH --chdir $work_dir
+EOM
 fi
 
-# echo -e "SLURM script generated:\n"
-# echo -e "========"
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
 
-cat $out_file
+set -euo pipefail
+IFS=$'\n\t'
+set -x
 
-# echo -e "========\n"
-# echo -e "SLURM script ends here\n"
+$PARAMS
+EOM
 
-if [ -z $dry_run ]; then
-  sbatch_output=$(sbatch $out_file)
-  echo $sbatch_output
+read -r -d '' -t 0.1 -s pipe_input
 
-  if [ ! -z $output_dir ]; then
-    job_id=$(echo $sbatch_output | sed -e 's/Submitted batch job \([0-9]\+\).*/\1/')
-    cp -a $out_file $output_dir/$output_pattern.sh
-  fi
+read -r -d '' sbatch_script <<- EOM
+$sbatch_script
+
+$pipe_input
+EOM
+
+echo "$sbatch_script"
+
+
+if [ -z $dry_run ]
+then
+sbatch <<- HEADER
+$sbatch_script
+HEADER
 fi
 
-# echo "Removing $out_file ..."
-rm $out_file
+exit 0
